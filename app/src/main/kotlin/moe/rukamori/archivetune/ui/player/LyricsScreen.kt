@@ -186,7 +186,7 @@ fun LyricsScreen(
         }
     val showPlayerControlsState =
         rememberPreference(ShowLyricsPlayerControlsKey, true)
-    val showPlayerControls by showPlayerControlsState
+    val showPlayerControls = false
     val onShowPlayerControlsChange =
         remember(showPlayerControlsState) {
             { showControls: Boolean ->
