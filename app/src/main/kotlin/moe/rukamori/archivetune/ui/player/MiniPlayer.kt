@@ -45,6 +45,11 @@ import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import moe.rukamori.archivetune.LocalPlayerConnection
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import moe.rukamori.archivetune.LocalGlassBackdrop
 import moe.rukamori.archivetune.constants.MiniPlayerBackgroundStyle
 import moe.rukamori.archivetune.constants.MiniPlayerBackgroundStyleKey
 import moe.rukamori.archivetune.constants.FloatingBarJunctionCornerRadius
@@ -88,6 +93,8 @@ private fun NewMiniPlayer(
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     val layoutDirection = LocalLayoutDirection.current
+    val glassBackdrop = LocalGlassBackdrop.current
+    val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
     val coroutineScope = rememberCoroutineScope()
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
     val swipeThumbnail by rememberPreference(moe.rukamori.archivetune.constants.SwipeThumbnailKey, true)
@@ -179,10 +186,21 @@ private fun NewMiniPlayer(
             MiniPlayerBackgroundStyle.THEME
         }
 
-    val contentColors =
-        rememberMiniPlayerContentColors(
-            useArtworkBackground = effectiveBackgroundStyle != MiniPlayerBackgroundStyle.THEME,
+    val baseContentColors =
+    rememberMiniPlayerContentColors(
+        useArtworkBackground =
+            glassBackdrop == null &&
+                effectiveBackgroundStyle != MiniPlayerBackgroundStyle.THEME,
+    )
+val contentColors =
+    if (glassBackdrop != null) {
+        baseContentColors.copy(
+            secondaryButtonContainer = baseContentColors.buttonIcon.copy(alpha = 0.10f),
+            artworkContainer = baseContentColors.buttonIcon.copy(alpha = 0.10f),
         )
+    } else {
+        baseContentColors
+    }
     val proximity = navigationProximityProvider()
     val miniPlayerShape =
         RoundedCornerShape(
@@ -212,13 +230,30 @@ private fun NewMiniPlayer(
                     .fillMaxWidth()
                     .height(MiniPlayerHeight)
                     .offset { IntOffset(offsetX.roundToInt(), 0) }
-                    .clip(miniPlayerShape),
+                    .then(
+                        if (glassBackdrop != null) {
+                            Modifier.drawBackdrop(
+                                backdrop = glassBackdrop,
+                                shape = { miniPlayerShape },
+                                effects = {
+                                    vibrancy()
+                                    blur(8f.dp.toPx())
+                                    lens(12f.dp.toPx(), 24f.dp.toPx())
+                                },
+                                onDrawSurface = { drawRect(glassTint) },
+                            )
+                        } else {
+                            Modifier.clip(miniPlayerShape)
+                        },
+                    ),
         ) {
-            MiniPlayerBackground(
-                style = effectiveBackgroundStyle,
-                palette = backgroundPalette,
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (glassBackdrop == null) {
+                MiniPlayerBackground(
+                    style = effectiveBackgroundStyle,
+                    palette = backgroundPalette,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             NewMiniPlayerContent(
                 position = position,
                 duration = duration,
@@ -228,7 +263,6 @@ private fun NewMiniPlayer(
         }
     }
 }
-
 @Composable
 private fun rememberMiniPlayerContentColors(useArtworkBackground: Boolean): MiniPlayerContentColors {
     val colorScheme = MaterialTheme.colorScheme

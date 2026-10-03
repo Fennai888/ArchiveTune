@@ -179,6 +179,9 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.valentinilk.shimmer.LocalShimmerTheme
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -1653,6 +1656,12 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     val haptic = LocalHapticFeedback.current
+                    val glassBackdropColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface
+val glassBackdrop =
+    rememberLayerBackdrop {
+        drawRect(glassBackdropColor)
+        drawContent()
+    }
                     val (enableHapticFeedback) = rememberPreference(EnableHapticFeedbackKey, true)
                     val customHaptic =
                         remember(haptic, enableHapticFeedback) {
@@ -1674,6 +1683,7 @@ class MainActivity : ComponentActivity() {
                         LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
                         LocalDownloadUtil provides downloadUtil,
                         LocalShimmerTheme provides ShimmerTheme,
+                        LocalGlassBackdrop provides glassBackdrop,
                         LocalSyncUtils provides syncUtils,
                         moe.rukamori.archivetune.ui.component.LocalBottomSheetPageState provides bottomSheetPageState,
                         moe.rukamori.archivetune.ui.component.LocalMenuState provides menuState,
@@ -2542,7 +2552,7 @@ class MainActivity : ComponentActivity() {
                                                 },
                                             ).nestedScroll(
                                                 topAppBarScrollBehavior.nestedScrollConnection,
-                                            ),
+                                           ).layerBackdrop(glassBackdrop),
                                 ) {
                                     navigationBuilder(
                                         navController,
@@ -3077,6 +3087,7 @@ val LocalPlayerAwareWindowInsets =
     compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
+val LocalGlassBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
 private val HomeOverflowFabSize = 56.dp
 private val HomeOverflowFabSpacing = 12.dp
